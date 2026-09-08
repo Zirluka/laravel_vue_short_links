@@ -1,0 +1,38 @@
+version: "3.8"
+
+services:
+    # Сервис приложения Laravel
+    laravel.test:
+        build:
+            context: .
+            dockerfile: Dockerfile # Или используйте готовый образ, например, php:8.4-fpm
+        ports:
+            - "80:80"
+        volumes:
+            - .:/var/www/html
+        depends_on:
+            - pgsql
+        networks:
+            - sail
+
+    # Сервис базы данных PostgreSQL
+    pgsql:
+        image: "postgres:16-alpine"
+        ports:
+            - "5432:5432"
+        environment:
+            POSTGRES_DB: "laravel_db"
+            POSTGRES_USER: "sail"
+            POSTGRES_PASSWORD: "password"
+        volumes:
+            - "sail-pgsql:/var/lib/postgresql/data"
+        networks:
+            - sail
+
+networks:
+    sail:
+        driver: bridge
+
+volumes:
+    sail-pgsql:
+        driver: local
