@@ -15,11 +15,11 @@ return new class extends Migration
         Schema::create('links', function (Blueprint $table) {
             $table->id();
             $table->foreignIdFor(User::class)->nullable()->constrained()->cascadeOnDelete();
-            $table->string("original_url");
-            $table->string("short_code", 12)->unique();
+            $table->string("original_url")->nullable();
+            $table->string("short_code", 6)->unique();
             $table->string("password")->nullable();
             $table->timestamp("expired_at")->nullable();
-            $table->boolean("is_active")->default(true);
+            $table->boolean("is_active")->default(false);
             $table->unsignedInteger("clicks_count")->default(0);
             $table->timestamps();
         });
