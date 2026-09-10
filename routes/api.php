@@ -6,3 +6,5 @@ use Illuminate\Support\Facades\Route;
 
 // API ROUTES
 Route::post("/", [LinkController::class, 'shortLink']);
+
+Route::get("/{code}", [LinkController::class, 'getUrl']);
