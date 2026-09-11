@@ -5,6 +5,7 @@
 .env.production
 .phpactor.json
 .phpunit.result.cache
+/.claude
 /.codex
 /.cursor/
 /.idea
@@ -26,3 +27,4 @@ Homestead.json
 Homestead.yaml
 Thumbs.db
 .~lock.tz_url_shortener.docx#
+claude*
