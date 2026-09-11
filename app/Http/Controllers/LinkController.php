@@ -43,7 +43,19 @@ class LinkController extends Controller
                 ], 500);
             }
         } else {
+            try {
+                $code = $shortLinkService->shortLink($request->validated("link"), $request->validated("password") ?? null);
 
+                return response()->json([
+                    "status" => "success",
+                    "code" => $code->short_code
+                ], 201);
+            } catch (\Throwable $th) {
+                return response()->json([
+                    "status" => "error",
+                    "data" => $th->getMessage(),
+                ], 500);
+            }
         }
 
     }
