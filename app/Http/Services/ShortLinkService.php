@@ -4,10 +4,8 @@ namespace App\Http\Services;
 
 use App\Exceptions\EmptyStringException;
 use App\Models\Link;
-use Exception;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
-use function PHPUnit\Framework\throwException;
 
 class ShortLinkService {
     // Функция для записи ссылки
@@ -17,12 +15,11 @@ class ShortLinkService {
             throw new EmptyStringException("Ссылка не должна быть пустой.");
         }
 
-        $free_row = Link::where("original_url", null)->first();
+        $free_row = Link::where("original_url", null)->exists();
         // Если мы не нашли доступное поле, создаем 50 пустых полей
-        if (!$free_row) {
-            $this->preallocateCodes();
-            $free_row = Link::where("original_url", null)->first();
-        }
+        if (!$free_row) $this->preallocateCodes();
+
+        $free_row = Link::where("original_url", null)->first();
 
         // Вставляем данные
         $free_row->user_id = Auth::user()->id ?? null;
