@@ -4,58 +4,47 @@ namespace App\Http\Services;
 
 use App\Exceptions\EmptyStringException;
 use App\Models\Link;
-use Illuminate\Support\Facades\Auth;
+use App\Http\Services\Base62Service;
+use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
-class ShortLinkService {
-    // Функция для записи ссылки
-    public function shortLink($link, $password = null) {
-        // Проверка на пустую строку
+class ShortLinkService
+{
+    public function __construct(
+        private readonly Base62Service $base62
+    ) {}
+
+    public function shortLink(
+        string $link,
+        ?string $password = null,
+        ?int $userId = null,
+        ?Carbon $expiredAt = null
+    ): Link {
         if (blank($link)) {
             throw new EmptyStringException("Ссылка не должна быть пустой.");
         }
 
-        $free_row = Link::where("original_url", null)->exists();
-        // Если мы не нашли доступное поле, создаем 50 пустых полей
-        if (!$free_row) $this->preallocateCodes();
+        // Если гость — строго 7 дней по ТЗ, если авторизован — берем его дату
+        $expiration = $userId === null ? now()->addDays(7) : $expiredAt;
 
-        $free_row = Link::where("original_url", null)->first();
+        return DB::transaction(function () use ($link, $password, $userId, $expiration) {
+            // 1. Создаем запись со временным уникальным плейсхолдером
+            $model = Link::create([
+                'user_id' => $userId,
+                'original_url' => $link,
+                'password' => $password ? Hash::make($password) : null,
+                'short_code' => 'temp_' . Str::random(10),
+                'expired_at' => $expiration,
+                'is_active' => true,
+            ]);
 
-        // Вставляем данные
-        $free_row->user_id = Auth::user()->id ?? null;
-        $free_row->original_url = $link;
-        $free_row->password = $password;
-        $free_row->expired_at = now()->addDays(7);
-        $free_row->is_active = true;
-        $free_row->created_at = now();
-        $free_row->updated_at = now();
-        $free_row->save();
+            // 2. Получаем настоящий инкрементный ID и кодируем в Base62
+            $model->short_code = $this->base62->encode($model->id);
+            $model->save();
 
-        return $free_row;
+            return $model;
+        });
     }
-
-    // Функция создания заранее прописанных кодов
-    public function preallocateCodes($count = 50) {
-        $insert_data = [];
-        // Берем все существующие коды
-        $existingCodes = Link::pluck("short_code")->flip();
-
-        // Цикл, которые прерывается, когда данные для вставки заполняются в нужном количестве
-        while (count($insert_data) < $count) {
-            // Генерируем код
-            $code = Str::password(length: 6, symbols: false);
-
-            // Проверяем, есть ли он в бд и в наших данных для вставки
-            if (!$existingCodes->has($code) && !isset($insert_data[$code])) {
-                $insert_data[$code] = [
-                    "short_code" => $code
-                ];
-            }
-        }
-
-        // Массово вставляем через Eloquent-модель
-        Link::insert(array_values($insert_data));
-    }
-
-
 }
