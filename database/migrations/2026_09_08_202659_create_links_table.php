@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\User;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -13,7 +14,16 @@ return new class extends Migration
     {
         Schema::create('links', function (Blueprint $table) {
             $table->id();
+            $table->foreignIdFor(User::class)->nullable()->constrained()->cascadeOnDelete();
+            $table->string("original_url")->nullable();
+            $table->string("short_code", 6)->unique()->index();
+            $table->string("password")->nullable();
+            $table->timestamp("expired_at")->nullable()->index();
+            $table->boolean("is_active")->default(false)->index();
+            $table->unsignedInteger("clicks_count")->default(0);
             $table->timestamps();
+
+            $table->index(["short_code", "expired_at", "is_active"]);
         });
     }
 
