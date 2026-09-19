@@ -95,35 +95,35 @@
 
 ```
 ┌─────────────────────────┐       ┌───────────────────────────────────┐
-│          dusers          │       │                links                │
+│          users          │       │                links              │
 ├─────────────────────────┤       ├───────────────────────────────────┤
-│ id (PK)                 │       │ id (PK)                             │
-│ name                    │◀─────┐│ user_id (FK, nullable)              │
-│ email (UNIQUE)          │      ││ original_url                        │
-│ password                │      ││ short_code (UNIQUE, INDEX)          │
-│ remember_token          │      ││ password (nullable)                 │
-│ created_at / updated_at │      ││ expired_at (INDEX, nullable)        │
-└─────────────────────────┘      ││ is_active (INDEX, boolean)          │
-                                      ││ clicks_count                        │
-                                      ││ created_at / updated_at             │
-                                      │└───────────────────────────────────┘
-                                      │                   ▲
-                                      │                   │ 1:N
-                                      │        ┌──────────────────────────┐
-                                      │        │            clicks             │
-                                      │        ├──────────────────────────┤
-                                      │        │ id (PK)                         │
-                                      └────────┼ link_id (FK)                   │
-                                               │ ip                              │
-                                               │ country                         │
-                                               │ city                            │
-                                               │ referer                         │
-                                               │ user_agent                      │
-                                               │ device_type                     │
-                                               │ os                              │
-                                               │ browser                         │
-                                               │ clicked_at                      │
-                                               └──────────────────────────┘
+│ id (PK)                 │       │ id (PK)                           │
+│ name                    │◀─────┐│ user_id (FK, nullable)            │
+│ email (UNIQUE)          │      ││ original_url                      │
+│ password                │      ││ short_code (UNIQUE, INDEX)        │
+│ remember_token          │      ││ password (nullable)               │
+│ created_at / updated_at │      ││ expired_at (INDEX, nullable)      │
+└─────────────────────────┘      ││ is_active (INDEX, boolean)        │
+                                 ││ clicks_count                      │
+                                 ││ created_at / updated_at           │
+                                 │└───────────────────────────────────┘
+                                 │                   ▲
+                                 │                   │ 1:N
+                                 │        ┌──────────────────────────┐
+                                 │        │          clicks          │
+                                 │        ├──────────────────────────┤
+                                 │        │ id (PK)                  │
+                                 └────────┼ link_id (FK)             │
+                                          │ ip                       │
+                                          │ country                  │
+                                          │ city                     │
+                                          │ referer                  │
+                                          │ user_agent               │
+                                          │ device_type              │
+                                          │ os                       │
+                                          │ browser                  │
+                                          │ clicked_at               │
+                                          └──────────────────────────┘
 ```
 
 ---
@@ -133,7 +133,7 @@
 ### 1. Клонирование репозитория и настройка `.env`
 
 ```bash
-git clone https://github.com/your-username/ziplink.git
+git clone https://github.com/zirluka/ziplink.git
 cd ziplink
 
 cp .env.example .env
@@ -150,15 +150,16 @@ DB_PASSWORD=password
 
 CACHE_STORE=redis
 QUEUE_CONNECTION=redis
+
+REDIS_CLIENT=predis
 REDIS_HOST=redis
+REDIS_PASSWORD=null
 REDIS_PORT=6379
 ```
 
 ### 2. Запуск контейнеров
 
 ```bash
-./vendor/bin/sail up -d
-# либо
 docker compose up -d
 ```
 
@@ -212,7 +213,7 @@ docker compose exec laravel.test php artisan test
 docker compose exec laravel.test php artisan test tests/Feature/LinkControllerTest.php
 
 # Запуск юнит-тестов алгоритма Base62
-docker compose exec laravel.test php artisan test tests/Unit/Base62ServiceTest.php
+docker compose exec laravel.test php artisan test tests/Unit/Base62ServiceTest.php (Планы)
 ```
 
 ---
