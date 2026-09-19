@@ -14,17 +14,19 @@ return new class extends Migration
     {
         Schema::create('clicks', function (Blueprint $table) {
             $table->id();
-            $table->foreignIdFor(Link::class)->constrained()->cascadeOnDelete();
-            $table->ipAddress("ip")->nullable();
-            $table->string("country")->nullable();
-            $table->string("city")->nullable();
-            $table->string("referer")->nullable();
-            $table->string("user_agent")->nullable();
-            $table->string("device_type")->nullable();
-            $table->string("os")->nullable();
-            $table->string("browser")->nullable();
-            $table->timestamp("clicked_at")->nullable();
-            $table->timestamps();
+            $table->foreignId('link_id')->constrained('links')->cascadeOnDelete();
+            $table->ipAddress('ip')->nullable();
+            $table->string('country', 100)->nullable();
+            $table->string('city', 100)->nullable();
+            $table->string('referer', 2048)->nullable();
+            $table->text('user_agent')->nullable();
+            $table->string('device_type', 50)->nullable();
+            $table->string('os', 50)->nullable();
+            $table->string('browser', 50)->nullable();
+            $table->timestamp('clicked_at')->useCurrent()->index();
+
+            // Индекс для быстрой выборки статистики по ссылке за период
+            $table->index(['link_id', 'clicked_at']);
         });
     }
 

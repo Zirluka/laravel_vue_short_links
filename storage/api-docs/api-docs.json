@@ -1,0 +1,781 @@
+{
+    "openapi": "3.0.0",
+    "info": {
+        "title": "ZipLink API Documentation",
+        "description": "Высокопроизводительный сервис сокращения ссылок и сбора аналитики",
+        "version": "1.0.0"
+    },
+    "servers": [
+        {
+            "url": "/api",
+            "description": "Основной API сервер"
+        }
+    ],
+    "paths": {
+        "/link/{code}/analytics": {
+            "get": {
+                "tags": [
+                    "Аналитика"
+                ],
+                "summary": "Сводная аналитика по кликам ссылки",
+                "operationId": "9a186ef2daa5bc293c1ae1459a751acf",
+                "parameters": [
+                    {
+                        "name": "code",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "example": "1C"
+                        }
+                    },
+                    {
+                        "name": "days",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 30
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Агрегированные данные для графиков",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "properties": {
+                                                "total_clicks": {
+                                                    "type": "integer",
+                                                    "example": 120
+                                                },
+                                                "clicks_over_time": {
+                                                    "type": "object"
+                                                },
+                                                "countries": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object"
+                                                    }
+                                                },
+                                                "devices": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object"
+                                                    }
+                                                },
+                                                "browsers": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object"
+                                                    }
+                                                },
+                                                "platforms": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object"
+                                                    }
+                                                },
+                                                "referers": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object"
+                                                    }
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Нет доступа к чужой аналитике"
+                    },
+                    "404": {
+                        "description": "Ссылка не найдена"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/tokens": {
+            "get": {
+                "tags": [
+                    "API Tokens"
+                ],
+                "summary": "Получение списка активных API-токенов",
+                "operationId": "eb66ab14ef6279023894ef3391698c5c",
+                "responses": {
+                    "200": {
+                        "description": "Список токенов",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer",
+                                                        "example": 1
+                                                    },
+                                                    "name": {
+                                                        "type": "string",
+                                                        "example": "Bot Token"
+                                                    },
+                                                    "last_used_at": {
+                                                        "type": "string",
+                                                        "example": null,
+                                                        "nullable": true
+                                                    },
+                                                    "created_at": {
+                                                        "type": "string",
+                                                        "example": "2026-09-19T22:00:00Z"
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "API Tokens"
+                ],
+                "summary": "Выпуск нового персонального API-токена",
+                "operationId": "699699145f4e71e9ed09da22a7dcac0a",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "name"
+                                ],
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "example": "CI/CD Token"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Токен создан (показывается только 1 раз)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Token created successfully."
+                                        },
+                                        "token": {
+                                            "type": "string",
+                                            "example": "1|abcdef123456..."
+                                        },
+                                        "data": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Ошибка валидации"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "API Tokens"
+                ],
+                "summary": "Отозвать все токены текущего пользователя",
+                "operationId": "2b2d9f3b72042461228e65a44fe70611",
+                "responses": {
+                    "200": {
+                        "description": "Все токены успешно отозваны"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/tokens/{tokenId}": {
+            "delete": {
+                "tags": [
+                    "API Tokens"
+                ],
+                "summary": "Отозвать конкретный токен по ID",
+                "operationId": "b71924377d4ef786c3a929d791d60c23",
+                "parameters": [
+                    {
+                        "name": "tokenId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Токен отозван"
+                    },
+                    "404": {
+                        "description": "Токен не найден"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/{code}": {
+            "get": {
+                "tags": [
+                    "Ссылки"
+                ],
+                "summary": "Получение целевого URL по коду (с асинхронным трекингом клика)",
+                "operationId": "30ff48c2b83da348b9cf26fefa35a9a6",
+                "parameters": [
+                    {
+                        "name": "code",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "example": "1C"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Успешный возврат URL",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "type": "string",
+                                            "example": "https://example.com/long-page"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Ссылка защищена паролем (требуется POST /{code}/guard)"
+                    },
+                    "404": {
+                        "description": "Ссылка не найдена или истекла"
+                    }
+                }
+            }
+        },
+        "/{code}/guard": {
+            "post": {
+                "tags": [
+                    "Ссылки"
+                ],
+                "summary": "Получение URL для ссылки, защищенной паролем",
+                "operationId": "1fb55b9d4692101881b1f4cf040681c6",
+                "parameters": [
+                    {
+                        "name": "code",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "example": "1C"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "password"
+                                ],
+                                "properties": {
+                                    "password": {
+                                        "type": "string",
+                                        "example": "secret123"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Пароль верный, возврат URL",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "type": "string",
+                                            "example": "https://example.com/long-page"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Неверный пароль"
+                    },
+                    "404": {
+                        "description": "Ссылка не найдена или истекла"
+                    }
+                }
+            }
+        },
+        "/": {
+            "post": {
+                "tags": [
+                    "Ссылки"
+                ],
+                "summary": "Создание короткой ссылки",
+                "operationId": "24520beaf9bb1ed179a58091cb873026",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "original_url"
+                                ],
+                                "properties": {
+                                    "original_url": {
+                                        "type": "string",
+                                        "format": "uri",
+                                        "example": "https://example.com/long-page"
+                                    },
+                                    "password": {
+                                        "type": "string",
+                                        "example": "secret123",
+                                        "nullable": true
+                                    },
+                                    "expired_at": {
+                                        "type": "string",
+                                        "format": "date-time",
+                                        "example": "2026-12-31T23:59:59Z",
+                                        "nullable": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Ссылка создана",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "short_code": {
+                                            "type": "string",
+                                            "example": "1C"
+                                        },
+                                        "short_url": {
+                                            "type": "string",
+                                            "example": "http://localhost:8000/1C"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Ошибка валидации"
+                    }
+                }
+            }
+        },
+        "/link/{id}/password": {
+            "patch": {
+                "tags": [
+                    "Управление ссылками"
+                ],
+                "summary": "Установка или смена пароля ссылки",
+                "operationId": "21b139ed82592e6f4c3aeaea3438c6e8",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "password": {
+                                        "type": "string",
+                                        "example": "newpass",
+                                        "nullable": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Пароль обновлен"
+                    },
+                    "403": {
+                        "description": "Нет прав доступа"
+                    },
+                    "404": {
+                        "description": "Ссылка не найдена"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/link/{id}/expired": {
+            "patch": {
+                "tags": [
+                    "Управление ссылками"
+                ],
+                "summary": "Установка или продление срока жизни ссылки",
+                "operationId": "7fdfeac5407ddc97bf003d2d6a559105",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "expired_at": {
+                                        "type": "string",
+                                        "format": "date-time",
+                                        "example": "2026-11-20T12:00:00Z",
+                                        "nullable": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Срок жизни обновлен"
+                    },
+                    "403": {
+                        "description": "Нет прав"
+                    },
+                    "404": {
+                        "description": "Ссылка не найдена"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/link/{id}/active": {
+            "patch": {
+                "tags": [
+                    "Управление ссылками"
+                ],
+                "summary": "Включение или отключение активности ссылки",
+                "operationId": "d010d8e44abc309a047d2bb5d1f5ab7c",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "is_active"
+                                ],
+                                "properties": {
+                                    "is_active": {
+                                        "type": "boolean",
+                                        "example": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Статус изменен"
+                    },
+                    "403": {
+                        "description": "Нет прав"
+                    },
+                    "404": {
+                        "description": "Ссылка не найдена"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/link/{id}": {
+            "delete": {
+                "tags": [
+                    "Управление ссылками"
+                ],
+                "summary": "Удаление ссылки",
+                "operationId": "24f54a579ec516f2a9fe3dabe5f0704b",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Ссылка удалена"
+                    },
+                    "403": {
+                        "description": "Нет прав"
+                    },
+                    "404": {
+                        "description": "Ссылка не найдена"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/user": {
+            "get": {
+                "tags": [
+                    "Пользователь"
+                ],
+                "summary": "Получение профиля текущего пользователя",
+                "operationId": "ed7384d7b0315a693466a7528ac2c3a8",
+                "responses": {
+                    "200": {
+                        "description": "Профиль получен",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "id": {
+                                            "type": "integer",
+                                            "example": 1
+                                        },
+                                        "name": {
+                                            "type": "string",
+                                            "example": "Alex"
+                                        },
+                                        "email": {
+                                            "type": "string",
+                                            "format": "email",
+                                            "example": "alex@example.com"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Не авторизован"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "Пользователь"
+                ],
+                "summary": "Удаление собственного аккаунта",
+                "operationId": "a14bc5aa7e52b6b25b79f173f6639099",
+                "responses": {
+                    "200": {
+                        "description": "Аккаунт удален"
+                    },
+                    "401": {
+                        "description": "Не авторизован"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "patch": {
+                "tags": [
+                    "Пользователь"
+                ],
+                "summary": "Обновление имени или email профиля",
+                "operationId": "cc962df8e02a5845d8f4d904abdf4399",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "example": "Alex New"
+                                    },
+                                    "email": {
+                                        "type": "string",
+                                        "format": "email",
+                                        "example": "alex_new@example.com"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Профиль обновлен"
+                    },
+                    "422": {
+                        "description": "Ошибка валидации"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        }
+    },
+    "components": {
+        "securitySchemes": {
+            "sanctum": {
+                "type": "http",
+                "description": "Введите токен в формате: Bearer {token}",
+                "bearerFormat": "JWT",
+                "scheme": "bearer"
+            }
+        }
+    },
+    "tags": [
+        {
+            "name": "Аналитика",
+            "description": "Аналитика"
+        },
+        {
+            "name": "API Tokens",
+            "description": "API Tokens"
+        },
+        {
+            "name": "Ссылки",
+            "description": "Ссылки"
+        },
+        {
+            "name": "Управление ссылками",
+            "description": "Управление ссылками"
+        },
+        {
+            "name": "Пользователь",
+            "description": "Пользователь"
+        }
+    ]
+}

@@ -213,7 +213,7 @@ docker compose exec laravel.test php artisan test
 docker compose exec laravel.test php artisan test tests/Feature/LinkControllerTest.php
 
 # Запуск юнит-тестов алгоритма Base62
-docker compose exec laravel.test php artisan test tests/Unit/Base62ServiceTest.php (Планы)
+docker compose exec laravel.test php artisan test tests/Unit/Base62ServiceTest.php
 ```
 
 ---

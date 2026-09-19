@@ -8,19 +8,41 @@ use App\Http\Requests\Link\LinkPasswordRequest;
 use App\Http\Requests\Link\LinkRequest;
 use App\Http\Resources\LinkResource;
 use App\Http\Services\ShortLinkService;
+use App\Jobs\TrackClickJob;
 use App\Models\Link;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Redis;
+use OpenApi\Attributes as OA;
 
-class  LinkController extends Controller
+class LinkController extends Controller
 {
     private const CACHE_PREFIX = 'links:code:';
 
-    // 1. Быстрый переход / получение URL через Redis
-    public function getUrl(string $code): JsonResponse
+    #[OA\Get(
+        path: "/{code}",
+        summary: "Получение целевого URL по коду (с асинхронным трекингом клика)",
+        tags: ["Ссылки"],
+        parameters: [
+            new OA\Parameter(name: "code", in: "path", required: true, schema: new OA\Schema(type: "string", example: "1C"))
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: "Успешный возврат URL",
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: "data", type: "string", example: "https://example.com/long-page")
+                    ]
+                )
+            ),
+            new OA\Response(response: 403, description: "Ссылка защищена паролем (требуется POST /{code}/guard)"),
+            new OA\Response(response: 404, description: "Ссылка не найдена или истекла")
+        ]
+    )]
+    public function getUrl(Request $request, string $code): JsonResponse
     {
         $linkData = $this->resolveLinkData($code);
 
@@ -35,12 +57,48 @@ class  LinkController extends Controller
             ], 403);
         }
 
+        TrackClickJob::dispatch(
+            $linkData['id'],
+            $request->ip(),
+            $request->userAgent(),
+            $request->headers->get('referer')
+        );
+
         return response()->json([
             'data' => $linkData['original_url']
         ], 200);
     }
 
-    // 2. Получение ссылки, защищенной паролем
+    #[OA\Post(
+        path: "/{code}/guard",
+        summary: "Получение URL для ссылки, защищенной паролем",
+        tags: ["Ссылки"],
+        parameters: [
+            new OA\Parameter(name: "code", in: "path", required: true, schema: new OA\Schema(type: "string", example: "1C"))
+        ],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ["password"],
+                properties: [
+                    new OA\Property(property: "password", type: "string", example: "secret123")
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: "Пароль верный, возврат URL",
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: "data", type: "string", example: "https://example.com/long-page")
+                    ]
+                )
+            ),
+            new OA\Response(response: 403, description: "Неверный пароль"),
+            new OA\Response(response: 404, description: "Ссылка не найдена или истекла")
+        ]
+    )]
     public function getGuardedUrl(LinkPasswordRequest $request, string $code): JsonResponse
     {
         $linkData = $this->resolveLinkData($code);
@@ -56,12 +114,47 @@ class  LinkController extends Controller
             ], 422);
         }
 
+        TrackClickJob::dispatch(
+            $linkData['id'],
+            $request->ip(),
+            $request->userAgent(),
+            $request->headers->get('referer')
+        );
+
         return response()->json([
             'data' => $linkData['original_url']
         ], 200);
     }
 
-    // 3. Создание ссылки
+    #[OA\Post(
+        path: "/",
+        summary: "Создание короткой ссылки",
+        tags: ["Ссылки"],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ["original_url"],
+                properties: [
+                    new OA\Property(property: "original_url", type: "string", format: "uri", example: "https://example.com/long-page"),
+                    new OA\Property(property: "password", type: "string", nullable: true, example: "secret123"),
+                    new OA\Property(property: "expired_at", type: "string", format: "date-time", nullable: true, example: "2026-12-31T23:59:59Z")
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(
+                response: 201,
+                description: "Ссылка создана",
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: "short_code", type: "string", example: "1C"),
+                        new OA\Property(property: "short_url", type: "string", example: "http://localhost:8000/1C")
+                    ]
+                )
+            ),
+            new OA\Response(response: 422, description: "Ошибка валидации")
+        ]
+    )]
     public function shortLink(LinkRequest $request, ShortLinkService $shortLinkService): JsonResponse
     {
         $user = Auth::user();
@@ -82,7 +175,28 @@ class  LinkController extends Controller
         ], 201);
     }
 
-    // 4. Смена пароля + Инвалидация
+    #[OA\Patch(
+        path: "/link/{id}/password",
+        summary: "Установка или смена пароля ссылки",
+        security: [["sanctum" => []]],
+        tags: ["Управление ссылками"],
+        parameters: [
+            new OA\Parameter(name: "id", in: "path", required: true, schema: new OA\Schema(type: "integer", example: 1))
+        ],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                properties: [
+                    new OA\Property(property: "password", type: "string", nullable: true, example: "newpass")
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(response: 200, description: "Пароль обновлен"),
+            new OA\Response(response: 403, description: "Нет прав доступа"),
+            new OA\Response(response: 404, description: "Ссылка не найдена")
+        ]
+    )]
     public function setPassword(LinkPasswordRequest $request, int $id): JsonResponse
     {
         $link = $this->findUserLink($request->user()->id, $id);
@@ -96,7 +210,28 @@ class  LinkController extends Controller
         return response()->json(['link' => new LinkResource($link)], 200);
     }
 
-    // 5. Срок жизни + Инвалидация
+    #[OA\Patch(
+        path: "/link/{id}/expired",
+        summary: "Установка или продление срока жизни ссылки",
+        security: [["sanctum" => []]],
+        tags: ["Управление ссылками"],
+        parameters: [
+            new OA\Parameter(name: "id", in: "path", required: true, schema: new OA\Schema(type: "integer", example: 1))
+        ],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                properties: [
+                    new OA\Property(property: "expired_at", type: "string", format: "date-time", nullable: true, example: "2026-11-20T12:00:00Z")
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(response: 200, description: "Срок жизни обновлен"),
+            new OA\Response(response: 403, description: "Нет прав"),
+            new OA\Response(response: 404, description: "Ссылка не найдена")
+        ]
+    )]
     public function setExpiresTime(LinkExpiredDateRequest $request, int $id): JsonResponse
     {
         $link = $this->findUserLink($request->user()->id, $id);
@@ -109,7 +244,29 @@ class  LinkController extends Controller
         return response()->json(['link' => new LinkResource($link)], 200);
     }
 
-    // 6. Активность + Инвалидация
+    #[OA\Patch(
+        path: "/link/{id}/active",
+        summary: "Включение или отключение активности ссылки",
+        security: [["sanctum" => []]],
+        tags: ["Управление ссылками"],
+        parameters: [
+            new OA\Parameter(name: "id", in: "path", required: true, schema: new OA\Schema(type: "integer", example: 1))
+        ],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ["is_active"],
+                properties: [
+                    new OA\Property(property: "is_active", type: "boolean", example: true)
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(response: 200, description: "Статус изменен"),
+            new OA\Response(response: 403, description: "Нет прав"),
+            new OA\Response(response: 404, description: "Ссылка не найдена")
+        ]
+    )]
     public function setActive(LinkActiveRequest $request, int $id): JsonResponse
     {
         $link = $this->findUserLink($request->user()->id, $id);
@@ -122,7 +279,20 @@ class  LinkController extends Controller
         return response()->json(['link' => new LinkResource($link)], 200);
     }
 
-    // 7. Удаление + Очистка кэша
+    #[OA\Delete(
+        path: "/link/{id}",
+        summary: "Удаление ссылки",
+        security: [["sanctum" => []]],
+        tags: ["Управление ссылками"],
+        parameters: [
+            new OA\Parameter(name: "id", in: "path", required: true, schema: new OA\Schema(type: "integer", example: 1))
+        ],
+        responses: [
+            new OA\Response(response: 200, description: "Ссылка удалена"),
+            new OA\Response(response: 403, description: "Нет прав"),
+            new OA\Response(response: 404, description: "Ссылка не найдена")
+        ]
+    )]
     public function destroy(Request $request, int $id): JsonResponse
     {
         $link = $this->findUserLink($request->user()->id, $id);
