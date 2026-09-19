@@ -37,6 +37,10 @@ class TrackClickJob implements ShouldQueue
             $deviceType = 'mobile';
         } else if ($agent->isTablet()) {
             $deviceType = 'tablet';
+        } else if ($agent->isDesktop()) {
+            $deviceType = 'desktop';
+        } else {
+            $deviceType = 'another';
         }
 
         $country = null;
