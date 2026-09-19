@@ -16,12 +16,14 @@ return new class extends Migration
             $table->id();
             $table->foreignIdFor(User::class)->nullable()->constrained()->cascadeOnDelete();
             $table->string("original_url")->nullable();
-            $table->string("short_code", 6)->unique();
+            $table->string("short_code", 6)->unique()->index();
             $table->string("password")->nullable();
-            $table->timestamp("expired_at")->nullable();
-            $table->boolean("is_active")->default(false);
+            $table->timestamp("expired_at")->nullable()->index();
+            $table->boolean("is_active")->default(false)->index();
             $table->unsignedInteger("clicks_count")->default(0);
             $table->timestamps();
+
+            $table->index(["short_code", "expired_at", "is_active"]);
         });
     }
 
