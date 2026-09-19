@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\LinkRequest;
 use App\Http\Services\ShortLinkService;
 use App\Models\Link;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -12,8 +13,9 @@ class LinkController extends Controller
 {
 
     // index
-    public function getUrl($code) {
+    public function getUrl($code): JsonResponse {
         $link = Link::where("short_code", $code)->first();
+
         if (!$link) {
             return response()->json([], 404);
         }
@@ -25,7 +27,7 @@ class LinkController extends Controller
 
 
     // create
-    public function shortLink(LinkRequest $request, ShortLinkService $shortLinkService) {
+    public function shortLink(LinkRequest $request, ShortLinkService $shortLinkService): JsonResponse {
         // Если пользователь не авторизован, то создаем анонимную ссылку
         if (!Auth::check()) {
             // Используем сервис для создания анонимной ссылки
