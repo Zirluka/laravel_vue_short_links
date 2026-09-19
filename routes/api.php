@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AnalyticsController;
 use App\Http\Controllers\UserController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -23,6 +24,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::patch('/link/{id}/expired', [LinkController::class, 'setExpiresTime']);
     Route::patch('/link/{id}/active', [LinkController::class, 'setActive']);
     Route::delete('/link/{id}', [LinkController::class, 'destroy']);
+
+    // Analytics
+    Route::get('/link/{code}/analytics', [AnalyticsController::class, 'show']);
 });
 
 require __DIR__.'/auth.php';

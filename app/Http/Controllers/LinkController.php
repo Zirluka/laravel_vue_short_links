@@ -8,6 +8,7 @@ use App\Http\Requests\Link\LinkPasswordRequest;
 use App\Http\Requests\Link\LinkRequest;
 use App\Http\Resources\LinkResource;
 use App\Http\Services\ShortLinkService;
+use App\Jobs\TrackClickJob;
 use App\Models\Link;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -15,12 +16,12 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Redis;
 
-class  LinkController extends Controller
+class LinkController extends Controller
 {
     private const CACHE_PREFIX = 'links:code:';
 
     // 1. Быстрый переход / получение URL через Redis
-    public function getUrl(string $code): JsonResponse
+    public function getUrl(Request $request, string $code): JsonResponse
     {
         $linkData = $this->resolveLinkData($code);
 
@@ -34,6 +35,13 @@ class  LinkController extends Controller
                 'errors' => ['code' => ['Forbidden for you']]
             ], 403);
         }
+
+        TrackClickJob::dispatch(
+            $linkData['id'],
+            $request->ip(),
+            $request->userAgent(),
+            $request->headers->get('referer')
+        );
 
         return response()->json([
             'data' => $linkData['original_url']
@@ -55,6 +63,13 @@ class  LinkController extends Controller
                 'errors' => ['password' => ['Invalid password']]
             ], 422);
         }
+
+        TrackClickJob::dispatch(
+            $linkData['id'],
+            $request->ip(),
+            $request->userAgent(),
+            $request->headers->get('referer')
+        );
 
         return response()->json([
             'data' => $linkData['original_url']

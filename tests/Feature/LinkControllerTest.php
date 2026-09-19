@@ -4,6 +4,8 @@ use App\Models\Link;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Redis;
+use App\Jobs\TrackClickJob;
+use Illuminate\Support\Facades\Queue;
 
 beforeEach(function () {
     // Очищаем тестовый Redis перед каждым запуском
@@ -219,4 +221,25 @@ test('user cannot update or delete someone elses link', function () {
         ->assertNotFound();
 
     $this->assertDatabaseHas('links', ['id' => $link->id]);
+});
+
+test('visiting short link dispatches TrackClickJob asynchronously', function () {
+    Queue::fake();
+
+    $link = Link::factory()->create([
+        'short_code' => 'track123',
+        'is_active' => true,
+        'password' => null,
+    ]);
+
+    $this->getJson("/api/{$link->short_code}", [
+        'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+        'Referer' => 'https://google.com',
+    ])->assertOk();
+
+    // Проверяем, что задача была отправлена с правильными аргументами
+    Queue::assertPushed(TrackClickJob::class, function (TrackClickJob $job) use ($link) {
+        return $job->linkId === $link->id
+            && $job->referer === 'https://google.com';
+    });
 });
