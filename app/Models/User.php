@@ -14,9 +14,9 @@ class User extends Authenticatable
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable, HasApiTokens;
 
-   protected $fillable = [ "name", "email", "password", "api_token" ];
+   protected $fillable = [ "name", "email", "password", "remember_token" ];
 
-   protected $hidden = [ "password", "api_token" ];
+   protected $hidden = [ "password", "remember_token" ];
 
    // Связи
    public function links() {
