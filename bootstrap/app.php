@@ -1,5 +1,6 @@
 <?php
 
+use Illuminate\Auth\Middleware\Authorize;
 use Illuminate\Auth\Middleware\RedirectIfAuthenticated;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -26,7 +27,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'verified' => \App\Http\Middleware\EnsureEmailIsVerified::class,
             'auth' => \Illuminate\Auth\Middleware\Authenticate::class,
-            'guest' => Illuminate\Auth\Middleware\RedirectIfAuthenticated::class
+            'guest' => Illuminate\Auth\Middleware\RedirectIfAuthenticated::class,
         ]);
 
     })
