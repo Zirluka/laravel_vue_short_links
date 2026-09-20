@@ -5,7 +5,7 @@ services:
     laravel.test:
         build:
             context: .
-            dockerfile: Dockerfile # Или используйте готовый образ, например, php:8.4-fpm
+            dockerfile: Dockerfile
         ports:
             - "80:80"
         volumes:
@@ -22,7 +22,7 @@ services:
         ports:
             - "5432:5432"
         environment:
-            POSTGRES_DB: "laravel_db"
+            POSTGRES_DB: "ziplink"
             POSTGRES_USER: "sail"
             POSTGRES_PASSWORD: "password"
         volumes:
@@ -30,6 +30,7 @@ services:
         networks:
             - sail
 
+    # Сервис Redis
     redis:
         image: "redis:alpine"
         ports:
