@@ -1,68 +1,72 @@
-import { defineStore } from 'pinia';
-import axios from 'axios';
+import { defineStore } from "pinia";
+import apiClient from "@/api/client";
+import { ref } from "vue";
+import router from "@/router";
 
-axios.defaults.baseURL = 'http://localhost';
+export const useAuthStore = defineStore("auth", () => {
+    const user = ref(null);
+    const token = ref(localStorage.getItem("auth_token") || null);
+    const isAuth = ref(!!token.value);
 
-export const useAuthStore = defineStore('auth', {
-    state: () => ({
-        user: null,
-        token: localStorage.getItem('token') || null,
-        isInit: false
-    }),
+    const setAuthData = (data) => {
+        user.value = data.user;
+        token.value = data.token;
+        isAuth.value = true;
+        localStorage.setItem("auth_token", data.token);
+    };
 
-    getters: {
-        isAuthenticated: (state) => !!state.token && !!state.user
-    },
+    const register = async (credentials) => {
+        const response = await apiClient.post("/api/register", credentials);
 
-    actions: {
-        // Вход по email
-        async login(credentials) {
-            const resonse = await axios.post('/api/login', credentials)
-            const token = resonse.data.token
+        setAuthData(response.data);
+    };
 
-            this.token = token
-            localStorage.setItem('token', token)
-            axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
+    const login = async (credentials) => {
+        const response = await apiClient.post("/api/login", credentials);
+        setAuthData(response.data);
+    };
 
-            await this.fetchUser();
-        },
+    const fetchUser = async () => {
+        if (!token.value) return;
 
-        // Получение пользователя
-        async fetchUser() {
-            if (!this.token) {
-                this.user = null
-                this.isInit = true
-                return
-            }
-
-            axios.defaults.headers.common['Authorization'] = `Bearer ${this.token}`
-
-            try {
-                const response = await axios.get('/api/user');
-                this.user = response.user
-            } catch (error) {
-                this.logout()
-            } finally {
-                this.isInit = true
-            }
-        },
-
-        // Выход
-        async logout() {
-            try {
-                if (this.token) {
-                    await axios.post('/api/logout');
-                }
-            } catch (error) {
-                // Ignore
-            } finally {
-                this.user = null
-                this.token = null
-                this.isInit = true
-                localStorage.removeItem('token')
-                delete axios.defaults.headers.common['Authorization']
-            }
+        try {
+            const response = await apiClient.get("/api/user");
+            user.value = response.data;
+            isAuth.value = true;
+        } catch (error) {
+            logout();
         }
-    }
-});
+    };
 
+    const logout = async () => {
+        try {
+            if (token.value) {
+                await apiClient.post("/api/logout");
+            }
+        } finally {
+            user.value = null;
+            token.value = null;
+            isAuth.value = false;
+            localStorage.removeItem("auth_token");
+            router.push({ name: "index" });
+        }
+    };
+
+    const update = async (credentials) => {
+        if (!token.value) return;
+
+        const response = await apiClient.patch("/api/user", credentials);
+        user.value = response.data.data;
+    };
+
+    return {
+        user,
+        token,
+        isAuth,
+        login,
+        register,
+        fetchUser,
+        logout,
+        update,
+    };
+});
