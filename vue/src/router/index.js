@@ -45,11 +45,11 @@ router.beforeEach(async (to, from, next) => {
 
     const authStore = useAuthStore();
 
-    if (!authStore.isInit == false) {
+    if (!authStore.token) {
         await authStore.fetchUser()
     }
 
-    const isAuth = authStore.isAuthenticated
+    const isAuth = authStore.isAuth
 
     if (to.meta.requiresAuth && !isAuth) {
         next({ name: 'index' })
