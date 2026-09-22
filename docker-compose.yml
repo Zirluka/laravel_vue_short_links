@@ -44,6 +44,21 @@ services:
             retries: 3
             timeout: 30s
 
+    # Воркер очередей
+    worker:
+        build:
+            context: .
+            dockerfile: Dockerfile
+        restart: unless-stopped
+        volumes:
+            - .:/var/www/html
+        depends_on:
+            - pgsql
+            - redis
+        networks:
+            - sail
+        command: php artisan queue:work --tries=3 --timeout=90
+
 networks:
     sail:
         driver: bridge
