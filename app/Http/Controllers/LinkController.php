@@ -157,7 +157,7 @@ class LinkController extends Controller
     )]
     public function shortLink(LinkRequest $request, ShortLinkService $shortLinkService): JsonResponse
     {
-        $user = Auth::user();
+        $user = $request->user('sanctum') ?? Auth::guard('sanctum')->user();
 
         $link = $shortLinkService->shortLink(
             $request->validated('link'),
