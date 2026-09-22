@@ -26,17 +26,17 @@ const router = createRouter({
       }
     },
     {
-      path: '/protected',
-      name: 'protected',
-      component: () => import('../views/ProtectedView.vue'),
-    },
-    {
       path: '/settings',
       name: 'settings',
       component: () => import('../views/SettingsView.vue'),
       meta: {
         requiresAuth: true
       }
+    },
+    {
+      path: '/:code',
+      name: 'link',
+      component: () => import('../views/RedirectLink.vue'),
     },
   ],
 })

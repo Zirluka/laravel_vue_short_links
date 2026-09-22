@@ -54,6 +54,9 @@ export const useAuthStore = defineStore("auth", () => {
 
     const update = async (credentials) => {
         if (!token.value) return;
+        if (credentials.password == "") {
+            delete credentials.password
+        }
 
         const response = await apiClient.patch("/api/user", credentials);
         user.value = response.data.data;

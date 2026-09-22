@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, ref } from "vue";
+import { onBeforeMount, ref } from "vue";
 import { RouterLink, RouterView } from "vue-router";
 import { useTheme } from "./composables/useTheme";
 import { useAuthStore } from "./stores/auth";
@@ -71,7 +71,7 @@ const registerHandle = async () => {
 // Тема
 const { initTheme, isDark, toggleTheme } = useTheme();
 
-onMounted(() => {
+onBeforeMount(() => {
     initTheme();
     authStore.fetchUser();
 });
