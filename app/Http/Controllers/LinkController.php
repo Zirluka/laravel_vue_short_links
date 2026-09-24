@@ -10,6 +10,7 @@ use App\Http\Resources\LinkResource;
 use App\Http\Services\ShortLinkService;
 use App\Jobs\TrackClickJob;
 use App\Models\Link;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -66,6 +67,37 @@ class LinkController extends Controller
 
         return response()->json([
             'data' => $linkData['original_url']
+        ], 200);
+    }
+
+    #[OA\Get(
+        path: "/links",
+        summary: "Получение ссылок пользователя",
+        tags: ["Ссылки"],
+        parameters: [],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: "Успешный возврат URL",
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: "data", type: "array", example: [
+                            [
+                                "id" => 1,
+                                "original_url" => "https://example.com",
+                                "short" => "ASuwr",
+                                "expired_at" => "24.02.2027"
+                            ]
+                        ])
+                    ]
+                )
+            ),
+        ]
+    )]
+    public function getUserUrls(): JsonResponse
+    {
+        return response()->json([
+            'data' => $this->findUserLinks(Auth::user()->id)
         ], 200);
     }
 
@@ -147,8 +179,9 @@ class LinkController extends Controller
                 description: "Ссылка создана",
                 content: new OA\JsonContent(
                     properties: [
-                        new OA\Property(property: "short_code", type: "string", example: "1C"),
-                        new OA\Property(property: "short_url", type: "string", example: "http://localhost:8000/1C")
+                        new OA\Property(property: "status", type: "string", example: "success"),
+                        new OA\Property(property: "code", type: "string", example: "1C"),
+                        new OA\Property(property: "link", type: "object", example: ["id" => 15,"user_id" => 8,"original_url" => "https://text.text","short_code" => "FXsz","expired_at" => "2026-10-01T22:17:46.000000Z","is_active" => true,"clicks_count" => 0,"created_at" => "2026-09-24T22:17:46.000000Z","updated_at" => "2026-09-24T22:17:46.000000Z"])
                     ]
                 )
             ),
@@ -171,7 +204,8 @@ class LinkController extends Controller
 
         return response()->json([
             'status' => 'success',
-            'code' => $link->short_code
+            'code' => $link->short_code,
+            'link' => $link
         ], 201);
     }
 
@@ -378,5 +412,11 @@ class LinkController extends Controller
         return Link::where('id', $id)
             ->where('user_id', $userId)
             ->firstOrFail();
+    }
+
+    private function findUserLinks(int $userId): Collection
+    {
+        return Link::where('user_id', $userId)
+            ->get();
     }
 }

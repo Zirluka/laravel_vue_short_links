@@ -20,7 +20,7 @@ class ShortLinkService
         string $link,
         ?string $password = null,
         ?int $userId = null,
-        ?Carbon $expiredAt = null
+        ?string $expiredAt = null
     ): Link {
         if (blank($link)) {
             throw new EmptyStringException("Ссылка не должна быть пустой.");
@@ -36,7 +36,7 @@ class ShortLinkService
                 'original_url' => $link,
                 'password' => $password ? Hash::make($password) : null,
                 'short_code' => 'temp_' . Str::random(10),
-                'expired_at' => $expiration,
+                'expired_at' => $expiration ?? now()->addDays(7),
                 'is_active' => true,
             ]);
 
