@@ -17,6 +17,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     // link controller
     Route::prefix('link')->group(function () {
+        Route::get('/', [LinkController::class, 'getUserUrls']);
         Route::patch('/{id}/password', [LinkController::class, 'setPassword']);
         Route::patch('/{id}/expired', [LinkController::class, 'setExpiresTime']);
         Route::patch('/{id}/active', [LinkController::class, 'setActive']);
