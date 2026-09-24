@@ -13,7 +13,7 @@ const resultData = ref(null);
 const qrCodeDataUrl = ref("");
 const fullShortUrl = computed(() => {
     if (!resultData.value?.code) return "";
-    return `${window.location.origin}/${resultData.value.code}`;
+    return `${import.meta.env.VITE_API_URL}/${resultData.value.code}`;
 });
 
 // Отправка формы на бек (POST /api/)
@@ -53,7 +53,7 @@ const copied = ref(false);
 const copyLink = async () => {
     try {
         await navigator.clipboard.writeText(
-            "http://172.26.5.21:5173/" + resultData.value.code,
+            `${import.meta.env.VITE_API_URL + resultData.value.code}`,
         );
         copied.value = true;
 
@@ -172,6 +172,6 @@ const copyLink = async () => {
     <footer
         class="border-t border-gray-200 dark:border-gray-800 py-6 text-center text-xs text-gray-500"
     >
-        &copy; 2026 LinkCut. Все права защищены.
+        &copy; 2026 ZipLink. Все права защищены.
     </footer>
 </template>
