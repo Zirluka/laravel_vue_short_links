@@ -5,6 +5,7 @@ use App\Models\User;
 test("user can get, update and delete account", function () {
     $user = User::factory()->create();
 
+
     // 1. Получение профиля
     $this->actingAs($user)
         ->getJson('/api/user')
