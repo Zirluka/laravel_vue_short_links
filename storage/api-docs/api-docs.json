@@ -314,6 +314,78 @@
                 }
             }
         },
+        "/link": {
+            "get": {
+                "tags": [
+                    "Ссылки"
+                ],
+                "summary": "Получение списка ссылок пользователя",
+                "operationId": "4eba332685aa82251779407d00c782df",
+                "responses": {
+                    "200": {
+                        "description": "Список ссылок пользователя",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer",
+                                                        "example": 1
+                                                    },
+                                                    "original_url": {
+                                                        "type": "string",
+                                                        "example": "https://example.com"
+                                                    },
+                                                    "short_code": {
+                                                        "type": "string",
+                                                        "example": "FXsz"
+                                                    },
+                                                    "is_active": {
+                                                        "type": "boolean",
+                                                        "example": true
+                                                    },
+                                                    "clicks_count": {
+                                                        "type": "integer",
+                                                        "example": 42
+                                                    },
+                                                    "expired_at": {
+                                                        "type": "string",
+                                                        "example": "2026-10-01T22:17:46.000000Z",
+                                                        "nullable": true
+                                                    },
+                                                    "created_at": {
+                                                        "type": "string",
+                                                        "example": "2026-09-24T22:17:46.000000Z"
+                                                    },
+                                                    "updated_at": {
+                                                        "type": "string",
+                                                        "example": "2026-09-24T22:17:46.000000Z"
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Не авторизован"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
         "/{code}/guard": {
             "post": {
                 "tags": [
@@ -390,10 +462,10 @@
                         "application/json": {
                             "schema": {
                                 "required": [
-                                    "original_url"
+                                    "link"
                                 ],
                                 "properties": {
-                                    "original_url": {
+                                    "link": {
                                         "type": "string",
                                         "format": "uri",
                                         "example": "https://example.com/long-page"
@@ -417,18 +489,61 @@
                 },
                 "responses": {
                     "201": {
-                        "description": "Ссылка создана",
+                        "description": "Ссылка успешно создана",
                         "content": {
                             "application/json": {
                                 "schema": {
                                     "properties": {
-                                        "short_code": {
+                                        "status": {
                                             "type": "string",
-                                            "example": "1C"
+                                            "example": "success"
                                         },
-                                        "short_url": {
+                                        "code": {
                                             "type": "string",
-                                            "example": "http://localhost:8000/1C"
+                                            "example": "FXsz"
+                                        },
+                                        "link": {
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer",
+                                                    "example": 15
+                                                },
+                                                "user_id": {
+                                                    "type": "integer",
+                                                    "example": 8,
+                                                    "nullable": true
+                                                },
+                                                "original_url": {
+                                                    "type": "string",
+                                                    "example": "https://example.com/long-page"
+                                                },
+                                                "short_code": {
+                                                    "type": "string",
+                                                    "example": "FXsz"
+                                                },
+                                                "expired_at": {
+                                                    "type": "string",
+                                                    "example": "2026-10-01T22:17:46.000000Z",
+                                                    "nullable": true
+                                                },
+                                                "is_active": {
+                                                    "type": "boolean",
+                                                    "example": true
+                                                },
+                                                "clicks_count": {
+                                                    "type": "integer",
+                                                    "example": 0
+                                                },
+                                                "created_at": {
+                                                    "type": "string",
+                                                    "example": "2026-09-24T22:17:46.000000Z"
+                                                },
+                                                "updated_at": {
+                                                    "type": "string",
+                                                    "example": "2026-09-24T22:17:46.000000Z"
+                                                }
+                                            },
+                                            "type": "object"
                                         }
                                     },
                                     "type": "object"

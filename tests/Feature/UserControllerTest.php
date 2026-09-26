@@ -9,13 +9,13 @@ test("user can get, update and delete account", function () {
     $this->actingAs($user)
         ->getJson('/api/user')
         ->assertOk()
-        ->assertJsonPath('user.email', $user->email);
+        ->assertJsonPath('data.email', $user->email);
 
     // 2. Обновления профиля (имени)
     $this->actingAs($user)
         ->patchJson('/api/user', ["name" => "Updated Name"])
         ->assertOk()
-        ->assertJsonPath("user.name", "Updated Name");
+        ->assertJsonPath("data.name", "Updated Name");
 
     // 3. Удаления профиля
     $this->actingAs($user)

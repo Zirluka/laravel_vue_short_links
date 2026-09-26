@@ -31,13 +31,16 @@ class AuthenticatedSessionController extends Controller
     /**
      * Destroy an authenticated session.
      */
-    public function destroy(Request $request): Response
+    public function destroy(Request $request): Response|JsonResponse
     {
-        Auth::guard('web')->logout();
+        // 1. Если авторизация через Sanctum-токены:
+        $request->user()?->currentAccessToken()?->delete();
 
-        $request->session()->invalidate();
-
-        $request->session()->regenerateToken();
+        // 2. Сессию сбрасываем только если она инициализирована на веб-роутах:
+        if ($request->hasSession()) {
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+        }
 
         return response()->noContent();
     }
