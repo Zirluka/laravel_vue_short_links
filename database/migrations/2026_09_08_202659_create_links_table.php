@@ -16,7 +16,7 @@ return new class extends Migration
             $table->id();
             $table->foreignIdFor(User::class)->nullable()->constrained()->cascadeOnDelete();
             $table->string("original_url")->nullable();
-            $table->string("short_code", 100)->unique()->index();
+            $table->string("short_code", 100)->unique();
             $table->string("password")->nullable()->default(null);
             $table->timestamp("expired_at")->nullable()->index();
             $table->boolean("is_active")->default(false)->index();
