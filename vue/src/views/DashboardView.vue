@@ -57,7 +57,7 @@ const createLinkHandle = async () => {
     };
 
     try {
-        const response = await apiClient.post("/api", createLinkForm.value);
+        const response = await apiClient.post("/api/create", createLinkForm.value);
         userLinks.value.push(response.data.link);
         isCreatingLink.value = false;
         createLinkForm.value = { link: "", password: "", expired_at: "" };

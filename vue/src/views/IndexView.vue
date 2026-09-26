@@ -25,7 +25,7 @@ const handleShorten = async () => {
     resultData.value = null;
 
     try {
-        const response = await apiClient.post("/api", {
+        const response = await apiClient.post("/api/create", {
             link: originalURL.value,
         });
 
