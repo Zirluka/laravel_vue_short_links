@@ -58,30 +58,136 @@ const createLinkHandle = async () => {
 
     try {
         const response = await apiClient.post("/api", createLinkForm.value);
-        userLinks.value.push(response.data.link)
-        isCreatingLink.value = false
+        userLinks.value.push(response.data.link);
+        isCreatingLink.value = false;
+        createLinkForm.value = { link: "", password: "", expired_at: "" };
     } catch (err) {
-        // console.log(err);
-
-        createLinkErrors.value =
-            err.response?.data?.message ||
-            "Не удалось создать ссылку. Проверьте корректность URL.";
+        if (err.response?.data?.errors) {
+            createLinkErrors.value = err.response.data.errors;
+        } else {
+            createLinkErrors.value = {
+                link: [err.response?.data?.message || "Ошибка создания ссылки"],
+                password: [],
+                expired_at: [],
+            };
+        }
     } finally {
         isCreate.value = false;
     }
 };
 
 // link edit
-const isEditingLink = ref(false)
-const editNow = ref(0)
+const isEditingLink = ref(false);
+const EditNowLink = ref(null);
+const editDisable = ref(false);
+const editLinkForm = ref({
+    password: "",
+    expired_at: "",
+});
+const editLinkErrors = ref({
+    password: "",
+    expired_at: "",
+});
 
-const editLink = (id) => {
-    editNow.value = id
-    isEditingLink.value = true
-}
+const editLink = (link) => {
+    EditNowLink.value = link;
+    isEditingLink.value = true;
+
+    editLinkErrors.value = {
+        password: "",
+        expired_at: "",
+    };
+
+    editLinkForm.value = {
+        password: "",
+        expired_at: formatForDateTimeInput(link.expired_at),
+    };
+};
+
+const editLinkHandle = async () => {
+    editDisable.value = true;
+    editLinkErrors.value = {
+        password: "",
+        expired_at: "",
+    };
+
+    try {
+        const linkId = EditNowLink.value.id;
+        const requests = [];
+
+        if (editLinkForm.value.expired_at !== undefined) {
+            requests.push(
+                apiClient.patch(`/api/link/${linkId}/expired`, {
+                    expired_at: editLinkForm.value.expired_at || null,
+                }),
+            );
+        }
+
+        if (editLinkForm.value.password.trim() !== "") {
+            requests.push(
+                apiClient.patch(`/api/link/${linkId}/password`, {
+                    password: editLinkForm.value.password,
+                }),
+            );
+        }
+
+        await Promise.all(requests);
+
+        const targetLink = userLinks.value.find((item) => item.id === linkId);
+        if (targetLink) {
+            targetLink.expired_at = editLinkForm.value.expired_at || null;
+            if (editLinkForm.value.password.trim() !== "") {
+                targetLink.is_protected = true;
+            }
+        }
+
+        isEditingLink.value = false;
+    } catch (error) {
+        if (error.response?.data?.errors) {
+            const errors = error.response.data.errors;
+            editLinkErrors.value = {
+                password: errors.password ? errors.password[0] : "",
+                expired_at: errors.expired_at ? errors.expired_at[0] : "",
+            };
+        } else {
+            alert(
+                error.response?.data?.message ||
+                    "Ошибка при сохранении изменений",
+            );
+        }
+    } finally {
+        editDisable.value = false;
+    }
+};
+
+const formatForDateTimeInput = (dateString) => {
+    if (!dateString) return "";
+
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return "";
+
+    const offset = date.getTimezoneOffset() * 60000;
+    const localDate = new Date(date.getTime() - offset);
+    return localDate.toISOString().slice(0, 16);
+};
+
+const formatDate = (dateString) => {
+    if (!dateString) return "Бессрочно"; // или "—"
+
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return "—";
+
+    return new Intl.DateTimeFormat("ru-RU", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+    }).format(date);
+};
 
 // link get
-const userLinks = ref(null);
+const userLinks = ref([]);
 
 const getUserUrls = async () => {
     try {
@@ -89,6 +195,46 @@ const getUserUrls = async () => {
         userLinks.value = response.data.data;
     } catch (error) {
         //
+    }
+};
+
+// Link disable
+const disableLink = async (link) => {
+    editDisable.value = true;
+    try {
+        await apiClient.patch(`/api/link/${link.id}/active`, {
+            is_active: !link.is_active,
+        });
+
+        const targetLink = userLinks.value.find((item) => item.id === link.id);
+        if (targetLink) {
+            targetLink.is_active = !link.is_active;
+        }
+    } catch (error) {
+        alert("Ошибка изменения: " + error.response);
+    } finally {
+        editDisable.value = false;
+        isEditingLink.value = false;
+    }
+};
+
+// Link delete
+const deleteLink = async (link) => {
+    if (!link || editDisable.value) return;
+
+    // Опциональное подтверждение перед удалением
+    if (!confirm("Вы уверены, что хотите удалить эту ссылку?")) return;
+
+    editDisable.value = true;
+    try {
+        await apiClient.delete(`/api/link/${link.id}`);
+
+        userLinks.value = userLinks.value.filter((item) => item.id !== link.id);
+        isEditingLink.value = false;
+    } catch (error) {
+        alert(error.response?.data?.message || "Ошибка при удалении ссылки");
+    } finally {
+        editDisable.value = false;
     }
 };
 
@@ -100,6 +246,7 @@ onMounted(() => {
 <template>
     <!-- Основной контент -->
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full flex-grow">
+        <!-- table header -->
         <div
             class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6"
         >
@@ -143,6 +290,7 @@ onMounted(() => {
                         <tr>
                             <th class="px-6 py-3">Короткая ссылка</th>
                             <th class="px-6 py-3">Оригинальный URL</th>
+                            <th class="px-6 py-3">Защищено</th>
                             <th class="px-6 py-3">Дата истечения</th>
                             <th class="px-6 py-3">Клики</th>
                             <th class="px-6 py-3">Статус</th>
@@ -164,16 +312,15 @@ onMounted(() => {
                                 >
                             </td>
                             <td
-                                class="px-6 py-4 max-w-xs truncate text-gray-500"
+                                class="px-6 py-4 max-w-xs text-gray-500"
                             >
                                 {{ link["original_url"] }}
                             </td>
                             <td class="px-6 py-4 font-medium">
-                                {{
-                                    new Intl.DateTimeFormat("ru-RU").format(
-                                        new Date(link["expired_at"]),
-                                    )
-                                }}
+                                {{ link["is_protected"] ? "Да" : "Нет" }}
+                            </td>
+                            <td class="px-6 py-4 font-medium">
+                                {{ formatDate(link["expired_at"]) }}
                             </td>
                             <td class="px-6 py-4 font-medium">
                                 {{ link["clicks_count"] }}
@@ -191,11 +338,7 @@ onMounted(() => {
                                 >
                             </td>
                             <td class="px-6 py-4 text-gray-500 text-xs">
-                                {{
-                                    new Intl.DateTimeFormat("ru-RU").format(
-                                        new Date(link["created_at"]),
-                                    )
-                                }}
+                                {{ formatDate(link["created_at"]) }}
                             </td>
                             <td class="px-6 py-4 text-center space-x-2">
                                 <router-link
@@ -207,7 +350,7 @@ onMounted(() => {
                                     >Аналитика
                                 </router-link>
                                 <button
-                                    @click="editLink(link['id'])"
+                                    @click="editLink(link)"
                                     class="text-xs text-red-600 dark:text-red-400 hover:underline"
                                 >
                                     Изменить
@@ -276,7 +419,7 @@ onMounted(() => {
                             >Дата истечения</label
                         >
                         <input
-                            type="date"
+                            type="datetime-local"
                             v-model="createLinkForm.expired_at"
                             class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg text-sm"
                         />
@@ -307,7 +450,7 @@ onMounted(() => {
                 class="bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-xl p-6 max-w-md w-full shadow-2xl slide-up"
             >
                 <div class="flex justify-between items-center mb-6">
-                    <h3 class="text-lg font-bold">Создание короткой ссылки</h3>
+                    <h3 class="text-lg font-bold">Изменение короткой ссылки</h3>
                     <button
                         @click="isEditingLink = false"
                         class="text-gray-400 hover:text-gray-600"
@@ -315,39 +458,23 @@ onMounted(() => {
                         &times;
                     </button>
                 </div>
-                <form class="space-y-4" @submit.prevent="createLinkHandle">
+                <form class="space-y-4" @submit.prevent="editLinkHandle">
                     <div>
                         <label class="block text-xs font-medium mb-1"
-                            >Оригинальный URL</label
-                        >
-                        <input
-                            type="text"
-                            required
-                            v-model="createLinkForm.link"
-                            class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg text-sm"
-                        />
-                        <p
-                            v-if="createLinkErrors?.link"
-                            class="mt-3 text-sm text-red-500 text-center"
-                        >
-                            {{ createLinkErrors?.link[0] }}
-                        </p>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium mb-1"
-                            >Пароль (оставте пустым, если пароль не
-                            нужен)</label
+                            >Новый пароль (оставьте пустым, если не
+                            меняется)</label
                         >
                         <input
                             type="password"
-                            v-model="createLinkForm.password"
+                            v-model="editLinkForm.password"
                             class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg text-sm"
+                            placeholder="Оставьте пустым, чтобы не менять"
                         />
                         <p
-                            v-if="createLinkErrors?.password"
+                            v-if="editLinkErrors?.password"
                             class="mt-3 text-sm text-red-500 text-center"
                         >
-                            {{ createLinkErrors?.password[0] }}
+                            {{ editLinkErrors?.password[0] }}
                         </p>
                     </div>
                     <div>
@@ -355,35 +482,46 @@ onMounted(() => {
                             >Дата истечения</label
                         >
                         <input
-                            type="date"
-                            v-model="createLinkForm.expired_at"
+                            type="datetime-local"
+                            v-model="editLinkForm.expired_at"
                             class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg text-sm"
                         />
                         <p
-                            v-if="createLinkErrors?.expired_at"
+                            v-if="editLinkErrors?.expired_at"
                             class="mt-3 text-sm text-red-500 text-center"
                         >
-                            {{ createLinkErrors?.expired_at[0] }}
+                            {{ editLinkErrors?.expired_at[0] }}
                         </p>
                     </div>
                     <button
-                        :disabled="isCreate"
+                        :disabled="editDisable"
                         type="submit"
                         class="w-full bg-brand-600 hover:bg-brand-700 text-white py-2.5 rounded-lg text-sm font-medium"
                     >
-                        Создать
+                        {{ editDisable ? "Сохранение..." : "Сохранить" }}
                     </button>
                     <button
-                        :disabled="isCreate"
+                        :disabled="editDisable"
                         type="button"
-                        class="w-full bg-red-600 hover:bg-red-700 text-white py-2.5 rounded-lg text-sm font-medium"
+                        :class="[
+                            EditNowLink.is_active
+                                ? 'bg-rose-600 hover:bg-rose-700'
+                                : 'bg-emerald-600 hover:bg-emerald-700',
+                            'w-full text-white py-2.5 rounded-lg text-sm font-medium transition duration-150 disabled:opacity-50 disabled:cursor-not-allowed',
+                        ]"
+                        @click="disableLink(EditNowLink)"
                     >
-                        Деактивировать
+                        {{
+                            EditNowLink.is_active
+                                ? "Деактивировать"
+                                : "Активировать"
+                        }}
                     </button>
                     <button
-                        :disabled="isCreate"
+                        :disabled="editDisable"
                         type="button"
                         class="w-full bg-red-600 hover:bg-red-700 text-white py-2.5 rounded-lg text-sm font-medium"
+                        @click="deleteLink(EditNowLink)"
                     >
                         Удалить
                     </button>
