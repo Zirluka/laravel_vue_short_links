@@ -4,9 +4,7 @@ namespace App\Providers;
 
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Support\ServiceProvider;
-use Illuminate\Support\Facades\RateLimiter;
-use Illuminate\Cache\RateLimiting\Limit;
-use Illuminate\Http\Request;
+use Illuminate\Support\Facades\URL;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -27,16 +25,8 @@ class AppServiceProvider extends ServiceProvider
             return config('app.frontend_url')."/password-reset/$token?email={$notifiable->getEmailForPasswordReset()}";
         });
 
-        RateLimiter::for('links-create', function (Request $request) {
-            return Limit::perMinute(20)->by($request->user()?->id ?: $request->ip());
-        });
-
-        RateLimiter::for('links-resolve', function (Request $request) {
-            return Limit::perMinute(120)->by($request->ip());
-        });
-
-        RateLimiter::for('links-guard', function (Request $request) {
-            return Limit::perMinute(10)->by($request->ip());
-        });
+        if ($this->app->environment('production') || env('APP_ENV') === 'production') {
+            URL::forceScheme('https');
+        }
     }
 }
