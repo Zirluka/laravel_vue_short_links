@@ -18,7 +18,7 @@ const router = createRouter({
       }
     },
     {
-      path: '/analytics/:id',
+      path: '/analytics/:code',
       name: 'analytics',
       component: () => import('../views/AnalyticsView.vue'),
       meta: {

@@ -344,7 +344,7 @@ onMounted(() => {
                                 <router-link
                                     :to="{
                                         name: 'analytics',
-                                        params: { id: link['id'] },
+                                        params: { code: link['short_code'] },
                                     }"
                                     class="text-xs text-gray-600 dark:text-gray-400 hover:underline"
                                     >Аналитика
