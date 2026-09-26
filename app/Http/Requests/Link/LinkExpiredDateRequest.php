@@ -23,7 +23,7 @@ class LinkExpiredDateRequest extends FormRequest
     public function rules(): array
     {
         return [
-            "expired_at" => ["required", "date", "after:now"],
+            "expired_at" => ["nullable", "date", "after:now"],
         ];
     }
 }
