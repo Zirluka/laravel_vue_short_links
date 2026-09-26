@@ -39,6 +39,6 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
 require __DIR__.'/auth.php';
 
-Route::post("/", [LinkController::class, 'shortLink'])->middleware('throttle:20,1');
+Route::post("/create", [LinkController::class, 'shortLink'])->middleware('throttle:20,1');
 Route::get("/{code}", [LinkController::class, 'getUrl'])->whereAlphaNumeric('code')->middleware('throttle:120,1');
 Route::post("/{code}/guard", [LinkController::class, 'getGuardedUrl'])->whereAlphaNumeric('code')->middleware('throttle:10,1');

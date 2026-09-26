@@ -179,7 +179,7 @@ class LinkController extends Controller
     }
 
     #[OA\Post(
-        path: "/",
+        path: "/create",
         summary: "Создание короткой ссылки",
         tags: ["Ссылки"],
         requestBody: new OA\RequestBody(
