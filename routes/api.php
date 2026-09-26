@@ -6,6 +6,7 @@ use App\Http\Controllers\UserController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\LinkController;
+use Illuminate\Routing\Middleware\ThrottleRequests;
 
 // API ROUTES
 
@@ -17,6 +18,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     // link controller
     Route::prefix('link')->group(function () {
+        Route::get('/', [LinkController::class, 'getUserUrls']);
         Route::patch('/{id}/password', [LinkController::class, 'setPassword']);
         Route::patch('/{id}/expired', [LinkController::class, 'setExpiresTime']);
         Route::patch('/{id}/active', [LinkController::class, 'setActive']);
@@ -37,7 +39,6 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
 require __DIR__.'/auth.php';
 
-Route::post("/", [LinkController::class, 'shortLink']);
-Route::get("/{code}", [LinkController::class, 'getUrl']);
-Route::post("/{code}/guard", [LinkController::class, 'getGuardedUrl']);
-
+Route::post("/", [LinkController::class, 'shortLink'])->middleware('throttle:20,1');
+Route::get("/{code}", [LinkController::class, 'getUrl'])->whereAlphaNumeric('code')->middleware('throttle:120,1');
+Route::post("/{code}/guard", [LinkController::class, 'getGuardedUrl'])->whereAlphaNumeric('code')->middleware('throttle:10,1');

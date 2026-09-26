@@ -4,7 +4,7 @@ namespace App\Http\Services;
 
 class Base62Service
 {
-    private const ALPHABET = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    private const ALPHABET = 'k9wM1ZaT5XyvGgYnU0K2qVzB6iL4cR7eP8xWb3uJpmsSdNtHjQfCDoEAFlrhmI';
     private const BASE = 62;
     // Смещение, чтобы первый ID не давал код из одной буквы вроде "b"
     private const OFFSET = 10_000_000;

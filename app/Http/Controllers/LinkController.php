@@ -10,6 +10,7 @@ use App\Http\Resources\LinkResource;
 use App\Http\Services\ShortLinkService;
 use App\Jobs\TrackClickJob;
 use App\Models\Link;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -69,6 +70,57 @@ class LinkController extends Controller
         ], 200);
     }
 
+    #[OA\Get(
+        path: "/link",
+        summary: "Получение списка ссылок пользователя",
+        tags: ["Ссылки"],
+        security: [["sanctum" => []]],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: "Список ссылок пользователя",
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(
+                            property: "data",
+                            type: "array",
+                            items: new OA\Items(
+                                properties: [
+                                    new OA\Property(property: "id", type: "integer", example: 1),
+                                    new OA\Property(property: "original_url", type: "string", example: "https://example.com"),
+                                    new OA\Property(property: "short_code", type: "string", example: "FXsz"),
+                                    new OA\Property(property: "is_active", type: "boolean", example: true),
+                                    new OA\Property(property: "is_protected", type: "boolean", example: false),
+                                    new OA\Property(property: "clicks_count", type: "integer", example: 42),
+                                    new OA\Property(property: "expired_at", type: "string", nullable: true, example: "2026-10-01T22:17:46.000000Z"),
+                                    new OA\Property(property: "created_at", type: "string", example: "2026-09-24T22:17:46.000000Z"),
+                                    new OA\Property(property: "updated_at", type: "string", example: "2026-09-24T22:17:46.000000Z")
+                                ]
+                            )
+                        )
+                    ]
+                )
+            ),
+            new OA\Response(response: 401, description: "Не авторизован")
+        ]
+    )]
+    public function getUserUrls(): JsonResponse
+    {
+        $links = $this->findUserLinks(Auth::user()->id);
+        foreach ($links as $link) {
+            if ($link["password"] == null || trim($link["password"]) == "") {
+                $link["is_protected"] = false;
+            } else {
+                $link["is_protected"] = true;
+            }
+            unset($link["password"]);
+        }
+
+        return response()->json([
+            'data' => $links
+        ], 200);
+    }
+
     #[OA\Post(
         path: "/{code}/guard",
         summary: "Получение URL для ссылки, защищенной паролем",
@@ -95,7 +147,7 @@ class LinkController extends Controller
                     ]
                 )
             ),
-            new OA\Response(response: 403, description: "Неверный пароль"),
+            new OA\Response(response: 422, description: "Неверный пароль"),
             new OA\Response(response: 404, description: "Ссылка не найдена или истекла")
         ]
     )]
@@ -133,9 +185,9 @@ class LinkController extends Controller
         requestBody: new OA\RequestBody(
             required: true,
             content: new OA\JsonContent(
-                required: ["original_url"],
+                required: ["link"],
                 properties: [
-                    new OA\Property(property: "original_url", type: "string", format: "uri", example: "https://example.com/long-page"),
+                    new OA\Property(property: "link", type: "string", format: "uri", example: "https://example.com/long-page"),
                     new OA\Property(property: "password", type: "string", nullable: true, example: "secret123"),
                     new OA\Property(property: "expired_at", type: "string", format: "date-time", nullable: true, example: "2026-12-31T23:59:59Z")
                 ]
@@ -144,11 +196,26 @@ class LinkController extends Controller
         responses: [
             new OA\Response(
                 response: 201,
-                description: "Ссылка создана",
+                description: "Ссылка успешно создана",
                 content: new OA\JsonContent(
                     properties: [
-                        new OA\Property(property: "short_code", type: "string", example: "1C"),
-                        new OA\Property(property: "short_url", type: "string", example: "http://localhost:8000/1C")
+                        new OA\Property(property: "status", type: "string", example: "success"),
+                        new OA\Property(property: "code", type: "string", example: "FXsz"),
+                        new OA\Property(
+                            property: "link",
+                            type: "object",
+                            properties: [
+                                new OA\Property(property: "id", type: "integer", example: 15),
+                                new OA\Property(property: "user_id", type: "integer", nullable: true, example: 8),
+                                new OA\Property(property: "original_url", type: "string", example: "https://example.com/long-page"),
+                                new OA\Property(property: "short_code", type: "string", example: "FXsz"),
+                                new OA\Property(property: "expired_at", type: "string", nullable: true, example: "2026-10-01T22:17:46.000000Z"),
+                                new OA\Property(property: "is_active", type: "boolean", example: true),
+                                new OA\Property(property: "clicks_count", type: "integer", example: 0),
+                                new OA\Property(property: "created_at", type: "string", example: "2026-09-24T22:17:46.000000Z"),
+                                new OA\Property(property: "updated_at", type: "string", example: "2026-09-24T22:17:46.000000Z")
+                            ]
+                        )
                     ]
                 )
             ),
@@ -157,7 +224,7 @@ class LinkController extends Controller
     )]
     public function shortLink(LinkRequest $request, ShortLinkService $shortLinkService): JsonResponse
     {
-        $user = Auth::user();
+        $user = $request->user('sanctum') ?? Auth::guard('sanctum')->user();
 
         $link = $shortLinkService->shortLink(
             $request->validated('link'),
@@ -166,12 +233,14 @@ class LinkController extends Controller
             $request->validated('expired_at')
         );
 
-        // Сразу прогреваем кэш в Redis
+        $link->clicks_count = 0;
+
         $this->cacheLink($link);
 
         return response()->json([
             'status' => 'success',
-            'code' => $link->short_code
+            'code' => $link->short_code,
+            'link' => $link
         ], 201);
     }
 
@@ -288,7 +357,7 @@ class LinkController extends Controller
             new OA\Parameter(name: "id", in: "path", required: true, schema: new OA\Schema(type: "integer", example: 1))
         ],
         responses: [
-            new OA\Response(response: 200, description: "Ссылка удалена"),
+            new OA\Response(response: 204, description: "Ссылка удалена"),
             new OA\Response(response: 403, description: "Нет прав"),
             new OA\Response(response: 404, description: "Ссылка не найдена")
         ]
@@ -307,20 +376,15 @@ class LinkController extends Controller
 
     // --- Приватные методы для работы с Redis и базой данных ---
 
-    /**
-     * Cache-Aside паттерн: Redis -> fallback в Postgres/MySQL
-     */
     private function resolveLinkData(string $code): ?array
     {
         $cacheKey = self::CACHE_PREFIX . $code;
 
-        // 1. Читаем из Redis
         $cached = Redis::get($cacheKey);
         if ($cached) {
             return json_decode($cached, true);
         }
 
-        // 2. Fallback в базу с проверкой активности и срока годности
         $link = Link::where('short_code', $code)
             ->where('is_active', true)
             ->where(function ($query) {
@@ -333,7 +397,6 @@ class LinkController extends Controller
             return null;
         }
 
-        // 3. Сохраняем в кэш
         $this->cacheLink($link);
 
         return [
@@ -356,14 +419,12 @@ class LinkController extends Controller
             'password' => $link->password,
         ]);
 
-        // Если есть срок годности, выставляем TTL ключа в Redis
         if ($link->expired_at) {
             $ttl = (int) now()->diffInSeconds($link->expired_at, false);
             if ($ttl > 0) {
                 Redis::setex($cacheKey, $ttl, $payload);
             }
         } else {
-            // Без срока — кэшируем на 24 часа (86400 сек)
             Redis::setex($cacheKey, 86400, $payload);
         }
     }
@@ -378,5 +439,11 @@ class LinkController extends Controller
         return Link::where('id', $id)
             ->where('user_id', $userId)
             ->firstOrFail();
+    }
+
+    private function findUserLinks(int $userId): Collection
+    {
+        return Link::where('user_id', $userId)
+            ->get();
     }
 }

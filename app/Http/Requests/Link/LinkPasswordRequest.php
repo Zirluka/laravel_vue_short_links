@@ -23,7 +23,7 @@ class LinkPasswordRequest extends FormRequest
     public function rules(): array
     {
         return [
-            "password" => ["nullable", "string", "min:4"],
+            "password" => ["nullable", "string"],
         ];
     }
 }

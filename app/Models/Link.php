@@ -11,7 +11,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Link extends Model
 {
     use HasFactory;
-    protected $fillable = [ "user_id", "original_url", "short_code", "password", "expired_at", "is_active", "clicks_count" ];
+    protected $fillable = [ "id", "user_id", "original_url", "short_code", "password", "expired_at", "is_active", "clicks_count" ];
+
+    public $incrementing = true;
 
     protected $hidden = ["password"];
 

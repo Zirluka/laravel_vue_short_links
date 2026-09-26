@@ -6,10 +6,16 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Redis;
 use App\Jobs\TrackClickJob;
 use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Facades\Http;
 
 beforeEach(function () {
     // Очищаем тестовый Redis перед каждым запуском
     Redis::flushall();
+
+    // Подменяем все HTTP-запросы валидатора успешным ответом 200
+    Http::fake([
+        '*' => Http::response('OK', 200),
+    ]);
 });
 
 // --- 1. ТЕСТЫ ПОЛУЧЕНИЯ ССЫЛКИ (GET URL И РАБОТА С КЭШЕМ REDIS) ---
@@ -242,4 +248,28 @@ test('visiting short link dispatches TrackClickJob asynchronously', function () 
         return $job->linkId === $link->id
             && $job->referer === 'https://google.com';
     });
+});
+
+test('cannot create link pointing to self domain', function () {
+    config(['app.url' => 'https://ziplink.ru']);
+
+    $response = $this->postJson('/api', [
+        'link' => 'https://ziplink.ru/some-page',
+    ]);
+
+    $response->assertUnprocessable()
+             ->assertJsonValidationErrors(['link']);
+});
+
+test('cannot create link if destination returns not 200', function () {
+    Http::fake([
+        'https://broken-site.com' => Http::response('Not Found', 404),
+    ]);
+
+    $response = $this->postJson('/api', [
+        'link' => 'https://broken-site.com',
+    ]);
+
+    $response->assertUnprocessable()
+             ->assertJsonValidationErrors(['link']);
 });

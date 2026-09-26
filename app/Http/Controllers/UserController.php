@@ -36,7 +36,7 @@ class UserController extends Controller
     public function getUser(Request $request): JsonResponse {
         // Возвращаем пользователя через ресурс
         return response()->json([
-            "user" => new UserResource($request->user())
+            "data" => new UserResource($request->user())
         ], 200);
     }
 
@@ -77,7 +77,7 @@ class UserController extends Controller
 
         // Отдаём 200 и пользователя
         return response()->json([
-            "user" => new UserResource($user)
+            "data" => new UserResource($user)
         ], 200);
     }
 
