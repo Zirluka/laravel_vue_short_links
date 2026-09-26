@@ -57,7 +57,7 @@ let devicesChartInstance = null;
 // Полный URL короткой ссылки
 const fullShortUrl = computedUrl();
 function computedUrl() {
-    return `${baseUrl}${shortCode.value}`;
+    return `${baseUrl}#/${shortCode.value}`;
 }
 
 // 1. Генерация QR кода локально

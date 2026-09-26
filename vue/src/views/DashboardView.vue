@@ -307,8 +307,8 @@ onMounted(() => {
                             class="hover:bg-gray-50/50 dark:hover:bg-gray-900/50"
                         >
                             <td class="px-6 py-4 font-semibold text-brand-600">
-                                <a :href="baseUrl + link['short_code']"
-                                    >{{ baseUrl }}{{ link["short_code"] }}</a
+                                <a :href="baseUrl + '#/' + link['short_code']"
+                                    >{{ baseUrl }}#/{{ link["short_code"] }}</a
                                 >
                             </td>
                             <td

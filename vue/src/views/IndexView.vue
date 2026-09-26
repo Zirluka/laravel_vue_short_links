@@ -13,7 +13,7 @@ const resultData = ref(null);
 const qrCodeDataUrl = ref("");
 const fullShortUrl = computed(() => {
     if (!resultData.value?.code) return "";
-    return `${import.meta.env.VITE_API_URL}${resultData.value.code}`;
+    return `${import.meta.env.VITE_API_URL}#/${resultData.value.code}`;
 });
 
 // Отправка формы на бек (POST /api/)
